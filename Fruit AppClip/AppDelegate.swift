@@ -7,40 +7,10 @@
 
 import UIKit
 
-import AppsFlyerLib
-
-@UIApplicationMain
+@main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-      
-        // Get AppsFlyer preferences from .plist file
-        guard let propertiesPath = Bundle.main.path(forResource: "afdevkey_donotpush", ofType: "plist"),
-            let properties = NSDictionary(contentsOfFile: propertiesPath) as? [String:String] else {
-                fatalError("Cannot find `afdevkey_donotpush`")
-        }
-        guard let appsFlyerDevKey = properties["appsFlyerDevKey"],
-                   let appleAppID = properties["appleAppID"] else {
-            fatalError("Cannot find `appsFlyerDevKey` or `appleAppID` key")
-        }
-        // 2 - Replace 'appsFlyerDevKey', `appleAppID` with your DevKey, Apple App ID
-        AppsFlyerLib.shared().appsFlyerDevKey = appsFlyerDevKey
-        AppsFlyerLib.shared().appleAppID = appleAppID
-        // Set delegate for OneLink Callbacks
-        AppsFlyerLib.shared().delegate = self
-        //  Set isDebug to true to see AppsFlyer debug logs
-        AppsFlyerLib.shared().isDebug = true
-        
-        guard let sharedUserDefaults = UserDefaults(suiteName: "group.fruitapp.appClipToFullApp") else {
-            return true
-        }
-        
-        if sharedUserDefaults.string(forKey: "custom_user_id") == nil {
-            sharedUserDefaults.set(UUID().uuidString, forKey: "custom_user_id")
-        }
-        
-        self.setNotification()
-        
         return true
     }
         
@@ -106,7 +76,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     // redirect user to desired UIViewController
     func walkToViewWithParams(fruitName: String) {
-                
         let destinationViewController = FruitViewController()
         
         switch fruitName {
@@ -120,43 +89,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             fatalError()
         }
         
-        UIApplication.shared.windows.first?.rootViewController?.present(destinationViewController, animated: true, completion: nil)
+        // 获取当前活跃的窗口场景
+        if let windowScene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController?.present(destinationViewController, animated: true)
+        }
     }   
 
-}
-
-extension AppDelegate: AppsFlyerLibDelegate {
-     
-    // Handle Organic/Non-organic installation
-    func onConversionDataSuccess(_ data: [AnyHashable: Any]) {
-        
-        print("onConversionDataSuccess data:")
-        for (key, value) in data {
-            print(key, ":", value)
-        }
-    }
-    
-    func onConversionDataFail(_ error: Error) {
-        print("\(error)")
-    }
-     
-    // Handle Deeplink
-    func onAppOpenAttribution(_ attributionData: [AnyHashable: Any]) {
-        //Handle Deep Link Data
-        print("onAppOpenAttribution data:")
-        for (key, value) in attributionData {
-            print(key, ":",value)
-        }
-                               
-        if let thisFruitName = attributionData["fruit_name"] as? String {
-            walkToViewWithParams(fruitName: thisFruitName)
-        } else {
-            print("Could find fruit_name in OneLink data")
-        }
-    }
-    
-    func onAppOpenAttributionFailure(_ error: Error) {
-        print("\(error)")
-    }
 }
 
